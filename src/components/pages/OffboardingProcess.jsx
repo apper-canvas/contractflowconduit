@@ -251,13 +251,10 @@ const handleUpdateChecklistItem = async (itemId, updates) => {
                       <p>Progress: {offboarding.completionPercentage}%</p>
                       <p>Created: {new Date(offboarding.createdAt).toLocaleDateString()}</p>
                     </div>
-                    <Button
+<Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setSelectedOffboarding(offboarding);
-                        setActiveView('view');
-                      }}
+                      onClick={() => navigate(`/offboarding/${offboarding.Id}`)}
                     >
                       <ApperIcon name="Eye" size={16} className="mr-2" />
                       View
