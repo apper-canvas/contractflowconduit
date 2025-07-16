@@ -319,12 +319,12 @@ const menuItems = [
                           <ApperIcon name="Settings" size={16} className="mr-2" />
                           Update Status
                         </Button>
-                        <Button
+<Button
                           variant="outline"
                           size="sm"
                           className="w-full justify-start"
                           onClick={() => handleAction('View Assignment')}
->
+                        >
                           <ApperIcon name="Briefcase" size={16} className="mr-2" />
                           View Assignment
                         </Button>
