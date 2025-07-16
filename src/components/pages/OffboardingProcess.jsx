@@ -444,10 +444,18 @@ const renderPendingItemsPanel = () => (
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={item.status} />
-                    <Button
+<Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/offboarding/${item.offboardingId}`)}
+                      onClick={async () => {
+                        try {
+                          const offboarding = await offboardingService.getById(item.offboardingId);
+                          setSelectedOffboarding(offboarding);
+                          setActiveView('view');
+                        } catch (err) {
+                          toast.error('Failed to load offboarding details');
+                        }
+                      }}
                     >
                       <ApperIcon name="ArrowRight" size={16} className="mr-2" />
                       View
