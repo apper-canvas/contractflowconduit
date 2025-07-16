@@ -3,16 +3,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import ApperIcon from "@/components/ApperIcon";
-import Button from "@/components/atoms/Button";
-import { Card, CardContent, CardHeader } from "@/components/atoms/Card";
 import Error from "@/components/ui/Error";
 import Loading from "@/components/ui/Loading";
 import Contractors from "@/components/pages/Contractors";
 import StatusBadge from "@/components/molecules/StatusBadge";
-import { contractorService } from "@/services/api/contractorService";
-import { overtimeService } from "@/services/api/overtimeService";
+import { Card, CardContent, CardHeader } from "@/components/atoms/Card";
+import Button from "@/components/atoms/Button";
 import { timeOffService } from "@/services/api/timeOffService";
-
+import { overtimeService } from "@/services/api/overtimeService";
+import { contractorService } from "@/services/api/contractorService";
 const ContractorDetails = () => {
   const { id } = useParams();
 const navigate = useNavigate();
@@ -331,6 +330,7 @@ const menuItems = [
                         </Button>
                       </div>
                     </div>
+</div>
 
                     {/* Contractor Actions */}
                     <div>
@@ -371,6 +371,22 @@ const menuItems = [
                         >
                           <ApperIcon name="User" size={16} className="mr-2" />
                           Update Profile
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Offboarding Actions */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-700 mb-3">Offboarding</h3>
+                      <div className="space-y-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full justify-start"
+                          onClick={() => navigate(`/offboarding/create/${contractor.Id}`)}
+                        >
+                          <ApperIcon name="UserX" size={16} className="mr-2" />
+                          Start Offboarding
                         </Button>
                       </div>
                     </div>

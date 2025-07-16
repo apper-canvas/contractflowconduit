@@ -1,0 +1,216 @@
+[
+  {
+    "Id": 1,
+    "contractorId": 1,
+    "contractorName": "Ahmed Hassan",
+    "department": "IT Division",
+    "departureDate": "2024-12-31",
+    "lastWorkingDay": "2024-12-30",
+    "reason": "contract_end",
+    "notes": "Contract completion - normal end of engagement",
+    "status": "in_progress",
+    "createdAt": "2024-12-15T10:30:00Z",
+    "completionPercentage": 33,
+    "clearanceChecklist": [
+      {
+        "Id": 1,
+        "title": "IT Equipment Return",
+        "description": "Return laptop, monitor, keyboard, mouse, headset",
+        "responsibleDepartment": "IT Department",
+        "completed": true,
+        "status": "completed",
+        "completedAt": "2024-12-16T14:20:00Z",
+        "completedBy": "John Smith"
+      },
+      {
+        "Id": 2,
+        "title": "Access Card Return",
+        "description": "Return building access card and parking pass",
+        "responsibleDepartment": "Security",
+        "completed": true,
+        "status": "completed",
+        "completedAt": "2024-12-16T15:45:00Z",
+        "completedBy": "Security Team"
+      },
+      {
+        "Id": 3,
+        "title": "System Access Revocation",
+        "description": "Revoke email, network, VPN, and application access",
+        "responsibleDepartment": "IT Department",
+        "completed": false,
+        "status": "pending",
+        "completedAt": null,
+        "completedBy": null
+      },
+      {
+        "Id": 4,
+        "title": "Knowledge Transfer",
+        "description": "Complete handover of ongoing projects and documentation",
+        "responsibleDepartment": "Direct Manager",
+        "completed": false,
+        "status": "pending",
+        "completedAt": null,
+        "completedBy": null
+      },
+      {
+        "Id": 5,
+        "title": "HR Documentation",
+        "description": "Complete exit interview and final paperwork",
+        "responsibleDepartment": "HR Department",
+        "completed": false,
+        "status": "pending",
+        "completedAt": null,
+        "completedBy": null
+      },
+      {
+        "Id": 6,
+        "title": "Final Timesheet",
+        "description": "Submit and approve final timesheet and expenses",
+        "responsibleDepartment": "Finance Department",
+        "completed": false,
+        "status": "pending",
+        "completedAt": null,
+        "completedBy": null
+      }
+    ],
+    "signatoryApprovals": [
+      {
+        "Id": 1,
+        "name": "Sarah Johnson",
+        "title": "Direct Manager",
+        "department": "IT Division",
+        "status": "approved",
+        "approvedAt": "2024-12-16T09:15:00Z",
+        "comments": "All project handovers completed successfully",
+        "order": 1
+      },
+      {
+        "Id": 2,
+        "name": "Michael Chen",
+        "title": "Department Head",
+        "department": "IT Division",
+        "status": "pending",
+        "approvedAt": null,
+        "comments": null,
+        "order": 2
+      },
+      {
+        "Id": 3,
+        "name": "Lisa Anderson",
+        "title": "HR Manager",
+        "department": "Human Resources",
+        "status": "pending",
+        "approvedAt": null,
+        "comments": null,
+        "order": 3
+      }
+    ]
+  },
+  {
+    "Id": 2,
+    "contractorId": 2,
+    "contractorName": "Emily Davis",
+    "department": "Risk Management",
+    "departureDate": "2024-12-20",
+    "lastWorkingDay": "2024-12-19",
+    "reason": "resignation",
+    "notes": "Voluntary resignation - pursuing other opportunities",
+    "status": "completed",
+    "createdAt": "2024-12-01T14:00:00Z",
+    "completionPercentage": 100,
+    "clearanceChecklist": [
+      {
+        "Id": 1,
+        "title": "IT Equipment Return",
+        "description": "Return laptop, monitor, keyboard, mouse, headset",
+        "responsibleDepartment": "IT Department",
+        "completed": true,
+        "status": "completed",
+        "completedAt": "2024-12-18T16:30:00Z",
+        "completedBy": "IT Support"
+      },
+      {
+        "Id": 2,
+        "title": "Access Card Return",
+        "description": "Return building access card and parking pass",
+        "responsibleDepartment": "Security",
+        "completed": true,
+        "status": "completed",
+        "completedAt": "2024-12-18T17:00:00Z",
+        "completedBy": "Security Team"
+      },
+      {
+        "Id": 3,
+        "title": "System Access Revocation",
+        "description": "Revoke email, network, VPN, and application access",
+        "responsibleDepartment": "IT Department",
+        "completed": true,
+        "status": "completed",
+        "completedAt": "2024-12-19T08:00:00Z",
+        "completedBy": "IT Administrator"
+      },
+      {
+        "Id": 4,
+        "title": "Knowledge Transfer",
+        "description": "Complete handover of ongoing projects and documentation",
+        "responsibleDepartment": "Direct Manager",
+        "completed": true,
+        "status": "completed",
+        "completedAt": "2024-12-17T15:30:00Z",
+        "completedBy": "Michael Chen"
+      },
+      {
+        "Id": 5,
+        "title": "HR Documentation",
+        "description": "Complete exit interview and final paperwork",
+        "responsibleDepartment": "HR Department",
+        "completed": true,
+        "status": "completed",
+        "completedAt": "2024-12-19T11:00:00Z",
+        "completedBy": "HR Team"
+      },
+      {
+        "Id": 6,
+        "title": "Final Timesheet",
+        "description": "Submit and approve final timesheet and expenses",
+        "responsibleDepartment": "Finance Department",
+        "completed": true,
+        "status": "completed",
+        "completedAt": "2024-12-19T14:00:00Z",
+        "completedBy": "Finance Team"
+      }
+    ],
+    "signatoryApprovals": [
+      {
+        "Id": 1,
+        "name": "Michael Chen",
+        "title": "Direct Manager",
+        "department": "Risk Management",
+        "status": "approved",
+        "approvedAt": "2024-12-17T16:00:00Z",
+        "comments": "Satisfactory completion of all assignments",
+        "order": 1
+      },
+      {
+        "Id": 2,
+        "name": "David Rodriguez",
+        "title": "Department Head",
+        "department": "Risk Management",
+        "status": "approved",
+        "approvedAt": "2024-12-18T10:30:00Z",
+        "comments": "Approved for final processing",
+        "order": 2
+      },
+      {
+        "Id": 3,
+        "name": "Lisa Anderson",
+        "title": "HR Manager",
+        "department": "Human Resources",
+        "status": "approved",
+        "approvedAt": "2024-12-19T15:00:00Z",
+        "comments": "Exit interview completed, final approval granted",
+        "order": 3
+      }
+    ]
+  }
+]

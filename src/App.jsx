@@ -17,6 +17,7 @@ import Settings from "@/components/pages/Settings";
 import TicketCreate from "@/components/pages/TicketCreate";
 import AgencyPortal from "@/components/pages/AgencyPortal";
 import ContractorDetails from "@/components/pages/ContractorDetails";
+import OffboardingProcess from "@/components/pages/OffboardingProcess";
 function App() {
 return (
     <BrowserRouter>
@@ -35,6 +36,9 @@ return (
 <Route path="/reports" element={<Reports />} />
           <Route path="/agencies" element={<Agencies />} />
           <Route path="/tickets/create" element={<TicketCreate />} />
+          <Route path="/offboarding" element={<OffboardingProcess />} />
+          <Route path="/offboarding/create/:contractorId" element={<OffboardingProcess />} />
+          <Route path="/offboarding/:id" element={<OffboardingProcess />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/agency-portal" element={<AgencyPortal />} />
         </Routes>
