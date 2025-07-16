@@ -1,29 +1,36 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { toast } from 'react-toastify';
-import { Card, CardContent, CardHeader } from '@/components/atoms/Card';
-import Button from '@/components/atoms/Button';
-import Input from '@/components/atoms/Input';
-import Select from '@/components/atoms/Select';
-import FormField from '@/components/molecules/FormField';
-import FileUpload from '@/components/atoms/FileUpload';
-import ApperIcon from '@/components/ApperIcon';
-import { ticketService } from '@/services/api/ticketService';
-import { torService } from '@/services/api/torService';
-import { cn } from '@/utils/cn';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { toast } from "react-toastify";
+import ApperIcon from "@/components/ApperIcon";
+import Loading from "@/components/ui/Loading";
+import Requisitions from "@/components/pages/Requisitions";
+import FormField from "@/components/molecules/FormField";
+import { Card, CardContent, CardHeader } from "@/components/atoms/Card";
+import Select from "@/components/atoms/Select";
+import Input from "@/components/atoms/Input";
+import FileUpload from "@/components/atoms/FileUpload";
+import Button from "@/components/atoms/Button";
+import { torService } from "@/services/api/torService";
+import { ticketService } from "@/services/api/ticketService";
+import { contractorService } from "@/services/api/contractorService";
+import { cn } from "@/utils/cn";
 
 const TicketCreate = () => {
   const navigate = useNavigate();
   
   // Form state
-  const [formData, setFormData] = useState({
+const [formData, setFormData] = useState({
     title: '',
     category: '',
     supervisor: '',
     budgetSource: '',
     project: '',
-    workArrangement: ''
+    workArrangement: '',
+    contractorId: '',
+    departureDate: '',
+    departureReason: '',
+    lastWorkingDay: ''
   });
 
   const [positions, setPositions] = useState([{
@@ -52,7 +59,8 @@ const [attachments, setAttachments] = useState({
     budgetSources: [],
     projects: [],
     workArrangements: [],
-    tors: []
+    tors: [],
+    contractors: []
   });
   // UI state
   const [loading, setLoading] = useState(false);
@@ -66,12 +74,13 @@ const [attachments, setAttachments] = useState({
 const loadDropdownData = async () => {
     try {
       setLoading(true);
-      const [categories, budgetSources, projects, workArrangements, tors] = await Promise.all([
+      const [categories, budgetSources, projects, workArrangements, tors, contractors] = await Promise.all([
         ticketService.getCategories(),
         ticketService.getBudgetSources(),
         ticketService.getProjects(),
         ticketService.getWorkArrangements(),
-        ticketService.getTors()
+        ticketService.getTors(),
+        ticketService.getContractors()
       ]);
 
       setDropdownData({
@@ -79,11 +88,22 @@ const loadDropdownData = async () => {
         budgetSources,
         projects,
         workArrangements,
-        tors
+        tors,
+        contractors
       });
 
-      // Check for pre-selected TOR from URL params
+      // Check for pre-selected category from URL params
       const urlParams = new URLSearchParams(window.location.search);
+      const categoryParam = urlParams.get('category');
+      if (categoryParam) {
+        setFormData(prev => ({
+          ...prev,
+          category: categoryParam
+        }));
+        toast.info(`Category "${categoryParam}" pre-selected for this ticket`);
+      }
+
+      // Check for pre-selected TOR from URL params
       const torId = urlParams.get('torId');
       if (torId) {
         const preSelectedTor = tors.find(tor => tor.Id === parseInt(torId));
@@ -159,16 +179,33 @@ const loadDropdownData = async () => {
     }
   };
 
-  const validateForm = () => {
+const validateForm = () => {
     const newErrors = {};
 
     // Required fields
     if (!formData.title.trim()) newErrors.title = 'Title is required';
     if (!formData.category) newErrors.category = 'Category is required';
-    if (!formData.supervisor.trim()) newErrors.supervisor = 'Supervisor is required';
-    if (!formData.budgetSource) newErrors.budgetSource = 'Budget source is required';
-    if (!formData.project) newErrors.project = 'Project is required';
-    if (!formData.workArrangement) newErrors.workArrangement = 'Work arrangement is required';
+    
+    // Offboarding-specific validations
+    if (formData.category === 'Offboarding') {
+      if (!formData.contractorId) newErrors.contractorId = 'Contractor is required';
+      if (!formData.departureDate) newErrors.departureDate = 'Departure date is required';
+      if (!formData.departureReason.trim()) newErrors.departureReason = 'Departure reason is required';
+      if (!formData.lastWorkingDay) newErrors.lastWorkingDay = 'Last working day is required';
+      
+      // Validate dates
+      if (formData.departureDate && formData.lastWorkingDay) {
+        if (new Date(formData.lastWorkingDay) > new Date(formData.departureDate)) {
+          newErrors.lastWorkingDay = 'Last working day must be before or on departure date';
+        }
+      }
+    } else {
+      // Regular ticket validations
+      if (!formData.supervisor.trim()) newErrors.supervisor = 'Supervisor is required';
+      if (!formData.budgetSource) newErrors.budgetSource = 'Budget source is required';
+      if (!formData.project) newErrors.project = 'Project is required';
+      if (!formData.workArrangement) newErrors.workArrangement = 'Work arrangement is required';
+    }
 
     // Validate positions
     positions.forEach((position, index) => {
@@ -254,8 +291,15 @@ const ticketData = {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
 <div>
-          <h1 className="text-2xl font-bold text-gray-900">Create New Ticket</h1>
-          <p className="text-gray-600">Create a hiring requisition with TOR attachment and position details</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {formData.category === 'Offboarding' ? 'Create Offboarding Ticket' : 'Create New Ticket'}
+          </h1>
+          <p className="text-gray-600">
+            {formData.category === 'Offboarding' 
+              ? 'Create an offboarding ticket for contractor resignation or termination'
+              : 'Create a hiring requisition with TOR attachment and position details'
+            }
+          </p>
         </div>
         <Button
           variant="outline"
@@ -269,7 +313,7 @@ const ticketData = {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information */}
-        <Card>
+<Card>
           <CardHeader>
             <h3 className="text-lg font-semibold">Basic Information</h3>
             <p className="text-sm text-gray-600">General ticket information that applies to all positions</p>
@@ -279,7 +323,7 @@ const ticketData = {
               <FormField
                 label="Ticket Title"
                 required
-                placeholder="e.g., Backend Development Team"
+                placeholder={formData.category === 'Offboarding' ? 'e.g., Offboarding - Ahmed Hassan' : 'e.g., Backend Development Team'}
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
                 error={errors.title}
@@ -304,78 +348,141 @@ const ticketData = {
                 </Select>
               </FormField>
 
-              <FormField
-                label="Supervisor"
-                required
-                placeholder="e.g., John Smith"
-                value={formData.supervisor}
-                onChange={(e) => handleInputChange('supervisor', e.target.value)}
-                error={errors.supervisor}
-              />
+              {formData.category === 'Offboarding' ? (
+                <>
+                  <FormField
+                    label="Contractor"
+                    required
+                    error={errors.contractorId}
+                  >
+                    <Select
+                      value={formData.contractorId}
+                      onChange={(e) => handleInputChange('contractorId', e.target.value)}
+                      error={!!errors.contractorId}
+                    >
+                      <option value="">Select Contractor</option>
+                      {dropdownData.contractors.map(contractor => (
+                        <option key={contractor.Id} value={contractor.Id}>
+                          {contractor.name} - {contractor.department}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormField>
 
-              <FormField
-                label="Budget Source"
-                required
-                error={errors.budgetSource}
-              >
-                <Select
-                  value={formData.budgetSource}
-                  onChange={(e) => handleInputChange('budgetSource', e.target.value)}
-                  error={!!errors.budgetSource}
-                >
-                  <option value="">Select Budget Source</option>
-                  {dropdownData.budgetSources.map(source => (
-                    <option key={source.Id} value={source.name}>
-                      {source.name} ({source.code})
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
+                  <FormField
+                    label="Departure Reason"
+                    required
+                    error={errors.departureReason}
+                  >
+                    <Select
+                      value={formData.departureReason}
+                      onChange={(e) => handleInputChange('departureReason', e.target.value)}
+                      error={!!errors.departureReason}
+                    >
+                      <option value="">Select Departure Reason</option>
+                      <option value="resignation">Resignation</option>
+                      <option value="termination">Termination</option>
+                      <option value="contract_end">Contract End</option>
+                      <option value="non_renewal">Non-Renewal</option>
+                      <option value="transfer">Transfer</option>
+                    </Select>
+                  </FormField>
 
-              <FormField
-                label="Project"
-                required
-                error={errors.project}
-              >
-                <Select
-                  value={formData.project}
-                  onChange={(e) => handleInputChange('project', e.target.value)}
-                  error={!!errors.project}
-                >
-                  <option value="">Select Project</option>
-                  {dropdownData.projects.map(project => (
-                    <option key={project.Id} value={project.name}>
-                      {project.name}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
+                  <FormField
+                    label="Departure Date"
+                    required
+                    type="date"
+                    value={formData.departureDate}
+                    onChange={(e) => handleInputChange('departureDate', e.target.value)}
+                    error={errors.departureDate}
+                  />
 
-              <FormField
-                label="Work Arrangement"
-                required
-                error={errors.workArrangement}
-              >
-                <Select
-                  value={formData.workArrangement}
-                  onChange={(e) => handleInputChange('workArrangement', e.target.value)}
-                  error={!!errors.workArrangement}
-                >
-                  <option value="">Select Work Arrangement</option>
-                  {dropdownData.workArrangements.map(arrangement => (
-                    <option key={arrangement.Id} value={arrangement.name}>
-                      {arrangement.name}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
+                  <FormField
+                    label="Last Working Day"
+                    required
+                    type="date"
+                    value={formData.lastWorkingDay}
+                    onChange={(e) => handleInputChange('lastWorkingDay', e.target.value)}
+                    error={errors.lastWorkingDay}
+                  />
+                </>
+              ) : (
+                <>
+                  <FormField
+                    label="Supervisor"
+                    required
+                    placeholder="e.g., John Smith"
+                    value={formData.supervisor}
+                    onChange={(e) => handleInputChange('supervisor', e.target.value)}
+                    error={errors.supervisor}
+                  />
+
+                  <FormField
+                    label="Budget Source"
+                    required
+                    error={errors.budgetSource}
+                  >
+                    <Select
+                      value={formData.budgetSource}
+                      onChange={(e) => handleInputChange('budgetSource', e.target.value)}
+                      error={!!errors.budgetSource}
+                    >
+                      <option value="">Select Budget Source</option>
+                      {dropdownData.budgetSources.map(source => (
+                        <option key={source.Id} value={source.name}>
+                          {source.name} ({source.code})
+                        </option>
+                      ))}
+                    </Select>
+                  </FormField>
+
+                  <FormField
+                    label="Project"
+                    required
+                    error={errors.project}
+                  >
+                    <Select
+                      value={formData.project}
+                      onChange={(e) => handleInputChange('project', e.target.value)}
+                      error={!!errors.project}
+                    >
+                      <option value="">Select Project</option>
+                      {dropdownData.projects.map(project => (
+                        <option key={project.Id} value={project.name}>
+                          {project.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormField>
+
+                  <FormField
+                    label="Work Arrangement"
+                    required
+                    error={errors.workArrangement}
+                  >
+                    <Select
+                      value={formData.workArrangement}
+                      onChange={(e) => handleInputChange('workArrangement', e.target.value)}
+                      error={!!errors.workArrangement}
+                    >
+                      <option value="">Select Work Arrangement</option>
+                      {dropdownData.workArrangements.map(arrangement => (
+                        <option key={arrangement.Id} value={arrangement.name}>
+                          {arrangement.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormField>
+                </>
+              )}
             </div>
           </CardContent>
-        </Card>
+</Card>
 
-        {/* Positions */}
-        <Card>
-          <CardHeader>
+        {/* Positions - Only show for non-offboarding tickets */}
+        {formData.category !== 'Offboarding' && (
+          <Card>
+            <CardHeader>
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold">Positions</h3>
@@ -469,11 +576,14 @@ const ticketData = {
                 </motion.div>
               ))}
             </div>
-          </CardContent>
+</CardContent>
         </Card>
-{/* TOR Selection */}
-        <Card>
-          <CardHeader>
+        )}
+
+        {/* TOR Selection - Only show for non-offboarding tickets */}
+        {formData.category !== 'Offboarding' && (
+          <Card>
+            <CardHeader>
             <h3 className="text-lg font-semibold">Terms of Reference (TOR)</h3>
             <p className="text-sm text-gray-600">Select or attach TOR document for this ticket</p>
           </CardHeader>
@@ -513,8 +623,9 @@ const ticketData = {
                 </div>
               )}
             </div>
-          </CardContent>
+</CardContent>
         </Card>
+        )}
 
         {/* File Attachments */}
         <Card>
@@ -577,13 +688,13 @@ const ticketData = {
           >
             {submitting ? (
               <>
-                <ApperIcon name="Loader2" className="w-4 h-4 mr-2 animate-spin" />
+<ApperIcon name="Loader2" className="w-4 h-4 mr-2 animate-spin" />
                 Creating Ticket...
               </>
             ) : (
               <>
                 <ApperIcon name="Check" className="w-4 h-4 mr-2" />
-                Create Ticket
+                {formData.category === 'Offboarding' ? 'Create Offboarding Ticket' : 'Create Ticket'}
               </>
             )}
           </Button>

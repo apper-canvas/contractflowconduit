@@ -9,7 +9,8 @@ const mockCategories = [
   { Id: 3, name: 'Operations', description: 'Business operations and management' },
   { Id: 4, name: 'Marketing', description: 'Marketing and communications roles' },
   { Id: 5, name: 'Legal', description: 'Legal and compliance positions' },
-  { Id: 6, name: 'HR', description: 'Human resources and talent management' }
+  { Id: 6, name: 'HR', description: 'Human resources and talent management' },
+  { Id: 7, name: 'Offboarding', description: 'Contractor resignation and termination processing' }
 ];
 
 const mockBudgetSources = [
@@ -343,7 +344,15 @@ async create(ticketData) {
     await delay(150);
     return [...mockWorkArrangements];
   },
-// TOR integration methods
+// Contractor integration methods
+  async getContractors() {
+    await delay(200);
+    // Import contractor service dynamically to avoid circular dependency
+    const { contractorService } = await import('./contractorService');
+    return await contractorService.getAll();
+  },
+
+  // TOR integration methods
   async getTors() {
     await delay(200);
     return await torService.getAll();
