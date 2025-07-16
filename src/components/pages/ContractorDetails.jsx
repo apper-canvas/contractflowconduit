@@ -324,15 +324,15 @@ const menuItems = [
                           size="sm"
                           className="w-full justify-start"
                           onClick={() => handleAction('View Assignment')}
-                        >
+>
                           <ApperIcon name="Briefcase" size={16} className="mr-2" />
                           View Assignment
                         </Button>
                       </div>
                     </div>
-</div>
+                  </CardContent>
 
-                    {/* Contractor Actions */}
+                    {/* Contractor Actions */
                     <div>
                       <h3 className="text-sm font-medium text-gray-700 mb-3">Contractor</h3>
                       <div className="space-y-2">
