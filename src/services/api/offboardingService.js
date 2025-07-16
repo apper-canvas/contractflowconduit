@@ -147,7 +147,7 @@ export const offboardingService = {
     return { success: true };
   },
 
-  async updateChecklistItem(offboardingId, itemId, updates) {
+async updateChecklistItem(offboardingId, itemId, updates) {
     await delay(200);
     const offboarding = offboardingData.find(o => o.Id === parseInt(offboardingId));
     if (!offboarding) throw new Error('Offboarding process not found');
@@ -155,11 +155,35 @@ export const offboardingService = {
     const itemIndex = offboarding.clearanceChecklist.findIndex(item => item.Id === parseInt(itemId));
     if (itemIndex === -1) throw new Error('Checklist item not found');
     
+    const item = offboarding.clearanceChecklist[itemIndex];
+    
     offboarding.clearanceChecklist[itemIndex] = {
-      ...offboarding.clearanceChecklist[itemIndex],
+      ...item,
       ...updates,
-      completedAt: updates.completed ? new Date().toISOString() : null
+      completedAt: updates.completed ? new Date().toISOString() : null,
+      completedBy: updates.completed ? 'System User' : null
     };
+    
+    // Send access deactivation notification if this is an access-related item
+    if (updates.completed && 
+        (item.title.toLowerCase().includes('access') || 
+         item.title.toLowerCase().includes('system'))) {
+      
+      // Create notification for access deactivation
+      const notification = {
+        id: Date.now(),
+        offboardingId: parseInt(offboardingId),
+        itemId: parseInt(itemId),
+        contractorName: offboarding.contractorName,
+        accessType: item.title.toLowerCase().includes('system') ? 'System Access' : 'Physical Access',
+        message: `${item.title} has been completed for ${offboarding.contractorName}`,
+        timestamp: new Date().toISOString(),
+        type: 'access_deactivation',
+        department: item.responsibleDepartment
+      };
+      
+      console.log('Access Deactivation Notification:', notification);
+    }
     
     // Update completion percentage
     const completedItems = offboarding.clearanceChecklist.filter(item => item.completed).length;
@@ -189,8 +213,110 @@ export const offboardingService = {
       offboarding.status = 'completed';
     } else if (!approved) {
       offboarding.status = 'rejected';
-    }
+}
     
     return { ...offboarding.signatoryApprovals[signatoryIndex] };
+  },
+
+  async getAccessDeactivationItems() {
+    await delay(200);
+    const accessItems = [];
+    
+    offboardingData.forEach(offboarding => {
+      offboarding.clearanceChecklist.forEach(item => {
+        if ((item.title.toLowerCase().includes('access') || 
+             item.title.toLowerCase().includes('system')) && 
+            !item.completed) {
+          accessItems.push({
+            offboardingId: offboarding.Id,
+            itemId: item.Id,
+            title: item.title,
+            contractorName: offboarding.contractorName,
+            accessType: item.title.toLowerCase().includes('system') ? 'System Access' : 'Physical Access',
+            responsibleDepartment: item.responsibleDepartment,
+            status: item.status,
+            priority: 'high',
+            type: 'access_deactivation'
+          });
+        }
+      });
+    });
+    
+    return accessItems;
+  },
+
+  async getPendingItems() {
+    await delay(200);
+    const pendingItems = [];
+    
+    offboardingData.forEach(offboarding => {
+      if (offboarding.status === 'in_progress') {
+        offboarding.clearanceChecklist.forEach(item => {
+          if (!item.completed) {
+            pendingItems.push({
+              offboardingId: offboarding.Id,
+              itemId: item.Id,
+              title: item.title,
+              contractorName: offboarding.contractorName,
+              responsibleDepartment: item.responsibleDepartment,
+              status: item.status,
+              dueDate: offboarding.lastWorkingDay,
+              priority: item.title.toLowerCase().includes('access') ? 'high' : 'medium'
+            });
+          }
+        });
+      }
+    });
+    
+    return pendingItems.sort((a, b) => {
+      const priorityOrder = { high: 3, medium: 2, low: 1 };
+      return priorityOrder[b.priority] - priorityOrder[a.priority];
+    });
+  },
+
+  async updateAccessStatus(offboardingId, itemId, accessUpdates) {
+    await delay(200);
+    const offboarding = offboardingData.find(o => o.Id === parseInt(offboardingId));
+    if (!offboarding) throw new Error('Offboarding process not found');
+    
+    const itemIndex = offboarding.clearanceChecklist.findIndex(item => item.Id === parseInt(itemId));
+    if (itemIndex === -1) throw new Error('Checklist item not found');
+    
+    offboarding.clearanceChecklist[itemIndex] = {
+      ...offboarding.clearanceChecklist[itemIndex],
+      ...accessUpdates,
+      completed: true,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+      completedBy: 'System Administrator'
+    };
+    
+    // Update completion percentage
+    const completedItems = offboarding.clearanceChecklist.filter(item => item.completed).length;
+    offboarding.completionPercentage = Math.round((completedItems / offboarding.clearanceChecklist.length) * 100);
+    
+    return { ...offboarding.clearanceChecklist[itemIndex] };
+  },
+
+  async sendAccessDeactivationNotification(offboardingId, itemId, accessType) {
+    await delay(100);
+    const offboarding = offboardingData.find(o => o.Id === parseInt(offboardingId));
+    if (!offboarding) throw new Error('Offboarding process not found');
+    
+    const notification = {
+      id: Date.now(),
+      offboardingId: parseInt(offboardingId),
+      itemId: parseInt(itemId),
+      contractorName: offboarding.contractorName,
+      accessType,
+      message: `${accessType} access has been deactivated for ${offboarding.contractorName}`,
+      timestamp: new Date().toISOString(),
+      type: 'access_deactivation'
+    };
+    
+    // In a real application, this would send notifications to relevant departments
+    console.log('Access Deactivation Notification:', notification);
+    
+    return notification;
   }
 };

@@ -26,6 +26,14 @@ const OffboardingProcess = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeView, setActiveView] = useState('list');
+  const [pendingItems, setPendingItems] = useState([]);
+  const [accessDeactivationItems, setAccessDeactivationItems] = useState([]);
+  const [notificationSystem, setNotificationSystem] = useState({
+    accessDeactivationNotifications: [],
+    pendingItemsCount: 0,
+    lastUpdated: null
+  });
+  const [pendingItemsFilter, setPendingItemsFilter] = useState('all');
   const [formData, setFormData] = useState({
     contractorId: contractorId || '',
     departureDate: '',
@@ -34,8 +42,10 @@ const OffboardingProcess = () => {
     notes: ''
   });
 
-  useEffect(() => {
+useEffect(() => {
     loadData();
+    loadPendingItems();
+    loadAccessDeactivationItems();
   }, []);
 
   const loadData = async () => {
@@ -71,6 +81,41 @@ const OffboardingProcess = () => {
     }
   };
 
+  const loadPendingItems = async () => {
+    try {
+      const pending = await offboardingService.getPendingItems();
+      setPendingItems(pending);
+      setNotificationSystem(prev => ({
+        ...prev,
+        pendingItemsCount: pending.length,
+        lastUpdated: new Date().toISOString()
+      }));
+    } catch (err) {
+      console.error('Failed to load pending items:', err);
+    }
+  };
+
+  const loadAccessDeactivationItems = async () => {
+    try {
+      const accessItems = await offboardingService.getAccessDeactivationItems();
+      setAccessDeactivationItems(accessItems);
+      
+      // Check for new access deactivation notifications
+      const notifications = accessItems.filter(item => 
+        item.status === 'pending' && item.type === 'access_deactivation'
+      );
+      
+      if (notifications.length > 0) {
+        setNotificationSystem(prev => ({
+          ...prev,
+          accessDeactivationNotifications: notifications
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to load access deactivation items:', err);
+    }
+  };
+
   const handleCreateOffboarding = async (e) => {
     e.preventDefault();
     
@@ -95,7 +140,7 @@ const OffboardingProcess = () => {
     }
   };
 
-  const handleUpdateChecklistItem = async (itemId, updates) => {
+const handleUpdateChecklistItem = async (itemId, updates) => {
     try {
       await offboardingService.updateChecklistItem(selectedOffboarding.Id, itemId, updates);
       
@@ -103,9 +148,40 @@ const OffboardingProcess = () => {
       const updatedOffboarding = await offboardingService.getById(selectedOffboarding.Id);
       setSelectedOffboarding(updatedOffboarding);
       
+      // Reload pending items and access deactivation notifications
+      await loadPendingItems();
+      await loadAccessDeactivationItems();
+      
       toast.success('Checklist item updated successfully');
     } catch (err) {
       toast.error('Failed to update checklist item');
+    }
+  };
+
+  const handleAccessDeactivation = async (itemId, accessType) => {
+    try {
+      await offboardingService.updateAccessStatus(selectedOffboarding.Id, itemId, {
+        status: 'deactivated',
+        deactivatedAt: new Date().toISOString(),
+        accessType
+      });
+      
+      // Send access deactivation notification
+      await offboardingService.sendAccessDeactivationNotification(
+        selectedOffboarding.Id, 
+        itemId, 
+        accessType
+      );
+      
+      // Reload data to reflect changes
+      const updatedOffboarding = await offboardingService.getById(selectedOffboarding.Id);
+      setSelectedOffboarding(updatedOffboarding);
+      await loadPendingItems();
+      await loadAccessDeactivationItems();
+      
+      toast.success(`${accessType} access deactivated successfully`);
+    } catch (err) {
+      toast.error(`Failed to deactivate ${accessType} access`);
     }
   };
 
@@ -315,6 +391,123 @@ const OffboardingProcess = () => {
     </div>
   );
 
+const renderPendingItemsPanel = () => (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Pending Items Tracking</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">
+              {pendingItems.length} pending items
+            </span>
+            <Select 
+              value={pendingItemsFilter} 
+              onChange={(e) => setPendingItemsFilter(e.target.value)}
+              className="w-32"
+            >
+              <option value="all">All Items</option>
+              <option value="high">High Priority</option>
+              <option value="medium">Medium Priority</option>
+              <option value="low">Low Priority</option>
+            </Select>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {pendingItems.length === 0 ? (
+          <Empty
+            title="No Pending Items"
+            description="All offboarding items are up to date."
+          />
+        ) : (
+          <div className="space-y-3">
+            {pendingItems
+              .filter(item => pendingItemsFilter === 'all' || item.priority === pendingItemsFilter)
+              .map((item) => (
+                <div key={`${item.offboardingId}-${item.itemId}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        item.priority === 'high' ? 'bg-red-500' : 
+                        item.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+                      )} />
+                      <div>
+                        <h4 className="font-medium text-gray-900">{item.title}</h4>
+                        <p className="text-sm text-gray-600">{item.contractorName}</p>
+                        <p className="text-xs text-gray-500">
+                          Due: {new Date(item.dueDate).toLocaleDateString()} • 
+                          Responsible: {item.responsibleDepartment}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={item.status} />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/offboarding/${item.offboardingId}`)}
+                    >
+                      <ApperIcon name="ArrowRight" size={16} className="mr-2" />
+                      View
+                    </Button>
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const renderAccessDeactivationNotifications = () => (
+    <Card>
+      <CardHeader>
+        <h3 className="text-lg font-semibold">Access Deactivation Notifications</h3>
+      </CardHeader>
+      <CardContent>
+        {accessDeactivationItems.length === 0 ? (
+          <Empty
+            title="No Access Deactivation Items"
+            description="All access deactivation items are processed."
+          />
+        ) : (
+          <div className="space-y-3">
+            {accessDeactivationItems.map((item) => (
+              <div key={`${item.offboardingId}-${item.itemId}`} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <ApperIcon name="AlertTriangle" size={20} className="text-orange-600" />
+                    <div>
+                      <h4 className="font-medium text-gray-900">{item.title}</h4>
+                      <p className="text-sm text-gray-600">{item.contractorName}</p>
+                      <p className="text-xs text-gray-500">
+                        Access Type: {item.accessType} • 
+                        Responsible: {item.responsibleDepartment}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={item.status} />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAccessDeactivation(item.itemId, item.accessType)}
+                  >
+                    <ApperIcon name="Shield" size={16} className="mr-2" />
+                    Deactivate
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   const renderViewDetails = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -327,6 +520,11 @@ const OffboardingProcess = () => {
             <span className="text-gray-600">
               Progress: {selectedOffboarding?.completionPercentage}%
             </span>
+            {notificationSystem.pendingItemsCount > 0 && (
+              <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                {notificationSystem.pendingItemsCount} pending items
+              </span>
+            )}
           </div>
         </div>
         <Button variant="outline" onClick={() => setActiveView('list')}>
@@ -334,6 +532,12 @@ const OffboardingProcess = () => {
           Back to List
         </Button>
       </div>
+
+      {/* Access Deactivation Notifications Panel */}
+      {accessDeactivationItems.length > 0 && renderAccessDeactivationNotifications()}
+
+      {/* Pending Items Panel */}
+      {pendingItems.length > 0 && renderPendingItemsPanel()}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Offboarding Details */}
@@ -371,7 +575,7 @@ const OffboardingProcess = () => {
           </CardContent>
         </Card>
 
-        {/* Clearance Checklist */}
+{/* Clearance Checklist */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <h3 className="text-lg font-semibold">Clearance Checklist</h3>
@@ -393,20 +597,44 @@ const OffboardingProcess = () => {
                         <p className="text-xs text-gray-500 mt-1">
                           Responsible: {item.responsibleDepartment}
                         </p>
+                        {item.title.toLowerCase().includes('access') && !item.completed && (
+                          <div className="mt-2 flex items-center gap-2 text-orange-600">
+                            <ApperIcon name="AlertTriangle" size={14} />
+                            <span className="text-xs">Access deactivation required</span>
+                          </div>
+                        )}
+                        {item.completedAt && (
+                          <p className="text-xs text-green-600 mt-1">
+                            Completed: {new Date(item.completedAt).toLocaleDateString()} 
+                            {item.completedBy && ` by ${item.completedBy}`}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={item.status} />
                     {!item.completed && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleUpdateChecklistItem(item.Id, { completed: true, status: 'completed' })}
-                      >
-                        <ApperIcon name="Check" size={16} className="mr-2" />
-                        Complete
-                      </Button>
+                      <div className="flex gap-2">
+                        {item.title.toLowerCase().includes('access') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAccessDeactivation(item.Id, item.title)}
+                          >
+                            <ApperIcon name="Shield" size={16} className="mr-2" />
+                            Deactivate
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUpdateChecklistItem(item.Id, { completed: true, status: 'completed' })}
+                        >
+                          <ApperIcon name="Check" size={16} className="mr-2" />
+                          Complete
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
